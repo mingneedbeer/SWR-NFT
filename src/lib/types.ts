@@ -14,6 +14,7 @@ export interface NftEvent {
   timestamp: number;
   marketplace?: string;
   txHash: string;
+  tokenURI?: string;
 }
 
 export interface AlchemyNftSale {

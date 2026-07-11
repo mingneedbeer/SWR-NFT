@@ -23,6 +23,44 @@ function getKey(): string {
   return key;
 }
 
+// Cache metadata lookups to avoid redundant calls
+const metadataCache = new Map<string, { image?: string; tokenURI?: string }>();
+
+async function fetchNftMetadata(
+  contractAddress: string,
+  tokenId: string
+): Promise<{ image?: string; tokenURI?: string }> {
+  const cacheKey = `${contractAddress}-${tokenId}`;
+  if (metadataCache.has(cacheKey)) return metadataCache.get(cacheKey)!;
+
+  const key = getKey();
+  const url = `${ALCHEMY_NFT_BASE}/${key}/getNFTMetadata?contractAddress=${contractAddress}&tokenId=${tokenId}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return {};
+    const data = await res.json();
+    const result = {
+      image: data.image?.cachedUrl || data.image?.originalUrl || undefined,
+      tokenURI: data.tokenURI?.raw || data.tokenURI?.gateway || undefined,
+    };
+    metadataCache.set(cacheKey, result);
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+async function enrichEventsWithMetadata(events: NftEvent[]): Promise<NftEvent[]> {
+  const enriched = await Promise.all(
+    events.map(async (event) => {
+      if (!event.collectionAddress || !event.tokenId) return event;
+      const meta = await fetchNftMetadata(event.collectionAddress, event.tokenId);
+      return { ...event, image: meta.image, tokenURI: meta.tokenURI };
+    })
+  );
+  return enriched;
+}
+
 function truncateAddress(addr: string): string {
   if (!addr || addr === '0x0000000000000000000000000000000000000000') {
     return '0x0000...0000';
@@ -73,7 +111,7 @@ export async function fetchNftSales(
     txHash: sale.transactionHash,
   }));
 
-  return { events, nextPageKey: json.pageKey };
+  return { events: await enrichEventsWithMetadata(events), nextPageKey: json.pageKey };
 }
 
 export async function fetchNftMints(
@@ -130,5 +168,5 @@ export async function fetchNftMints(
     txHash: t.hash,
   }));
 
-  return { events, nextPageKey: json.result?.pageKey };
+  return { events: await enrichEventsWithMetadata(events), nextPageKey: json.result?.pageKey };
 }
