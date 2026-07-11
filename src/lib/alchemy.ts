@@ -41,7 +41,7 @@ async function fetchNftMetadata(
     const data = await res.json();
     const result = {
       image: data.image?.cachedUrl || data.image?.originalUrl || undefined,
-      tokenURI: data.tokenURI?.raw || data.tokenURI?.gateway || undefined,
+      tokenURI: data.tokenUri || data.raw?.tokenUri || undefined,
     };
     metadataCache.set(cacheKey, result);
     return result;
