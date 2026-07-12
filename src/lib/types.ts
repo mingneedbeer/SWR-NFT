@@ -24,16 +24,15 @@ export interface AlchemyNftSale {
   quantity: string;
   buyerAddress: string;
   sellerAddress: string;
-  salePrice: string;
-  saleFeeData: {
-    socialFee: string;
-    protocolFee: string;
-    royaltyFee: string;
+  sellerFee?: {
+    amount: string;
+    symbol: string;
+    decimals: number;
   };
   transactionHash: string;
   blockNumber: number;
   logIndex: number;
-  timestamp: string;
+  timestamp?: string;
 }
 
 export interface AlchemyNftTransfer {

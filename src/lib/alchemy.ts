@@ -75,6 +75,38 @@ function formatPrice(wei: string): string {
   return `${eth.toFixed(4)} ETH`;
 }
 
+async function resolveBlockTimestamps(
+  blockNumbers: number[]
+): Promise<Map<number, number>> {
+  const map = new Map<number, number>();
+  const key = getKey();
+
+  const results = await Promise.all(
+    blockNumbers.map(async (blockNum) => {
+      try {
+        const res = await fetch(`${ALCHEMY_RPC_BASE}/${key}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'eth_getBlockByNumber',
+            params: [`0x${blockNum.toString(16)}`, false],
+          }),
+        });
+        const json = await res.json();
+        if (json.result?.timestamp) {
+          return { blockNum, timestamp: parseInt(json.result.timestamp, 16) * 1000 };
+        }
+      } catch {}
+      return { blockNum, timestamp: Date.now() };
+    })
+  );
+
+  for (const r of results) map.set(r.blockNum, r.timestamp);
+  return map;
+}
+
 export async function fetchNftSales(
   limit = 20,
   pageKey?: string
@@ -94,19 +126,23 @@ export async function fetchNftSales(
   }
 
   const json = await res.json();
-  const sales: AlchemyNftSale[] = json.data ?? [];
+  const rawSales: AlchemyNftSale[] = json.nftSales ?? [];
 
-  const events: NftEvent[] = sales.map((sale) => ({
+  // Resolve block numbers to timestamps via JSON-RPC
+  const uniqueBlocks = [...new Set(rawSales.map((s) => s.blockNumber))];
+  const blockTimestamps = await resolveBlockTimestamps(uniqueBlocks);
+
+  const events: NftEvent[] = rawSales.map((sale) => ({
     id: `sale-${sale.transactionHash}-${sale.logIndex}`,
     type: 'sale' as const,
     collectionName: sale.contractAddress,
     collectionAddress: sale.contractAddress,
     tokenId: sale.tokenId,
-    price: formatPrice(sale.salePrice),
-    priceCurrency: 'ETH',
+    price: formatPrice(sale.sellerFee?.amount ?? '0'),
+    priceCurrency: sale.sellerFee?.symbol || 'ETH',
     from: truncateAddress(sale.sellerAddress),
     to: truncateAddress(sale.buyerAddress),
-    timestamp: new Date(sale.timestamp).getTime(),
+    timestamp: blockTimestamps.get(sale.blockNumber) ?? Date.now(),
     marketplace: sale.marketplace,
     txHash: sale.transactionHash,
   }));
