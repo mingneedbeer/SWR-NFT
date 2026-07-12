@@ -21,7 +21,50 @@ const typeLabels: Record<string, string> = {
   sale: 'Sale',
 };
 
-export function EventCard({ event }: { event: NftEvent }) {
+export function EventCard({ event, viewMode = 'list' }: { event: NftEvent; viewMode?: 'list' | 'grid' }) {
+  if (viewMode === 'grid') {
+    return (
+      <div className="bg-nft-card border border-nft-border rounded-xl overflow-hidden hover:border-nft-accent/50 transition-colors flex flex-col">
+        {event.image && (
+          <img
+            src={event.image}
+            alt={`Token #${event.tokenId}`}
+            className="w-full aspect-square object-cover bg-nft-border"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+        )}
+        <div className="p-3 flex flex-col gap-2 flex-1">
+          <div className="flex items-center justify-between">
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${typeStyles[event.type]}`}>
+              {typeLabels[event.type]}
+            </span>
+            <span className="text-nft-muted text-xs">{timeAgo(event.timestamp)}</span>
+          </div>
+          <h3 className="text-nft-text font-medium text-sm truncate">{event.collectionName}</h3>
+          <p className="text-nft-muted text-xs">Token #{event.tokenId}</p>
+          {event.price && (
+            <div className="flex items-center gap-1">
+              <span className="text-nft-text font-semibold text-sm">{event.price}</span>
+              {event.marketplace && (
+                <span className="text-nft-muted text-xs capitalize">via {event.marketplace}</span>
+              )}
+            </div>
+          )}
+          <div className="mt-auto pt-2 flex items-center gap-3 text-xs border-t border-nft-border">
+            <a href={`https://etherscan.io/tx/${event.txHash}`} target="_blank" rel="noopener noreferrer" className="text-nft-accent hover:underline">
+              Etherscan →
+            </a>
+            {event.tokenURI && (
+              <a href={event.tokenURI} target="_blank" rel="noopener noreferrer" className="text-nft-accent hover:underline">
+                Token URI →
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-nft-card border border-nft-border rounded-xl p-4 hover:border-nft-accent/50 transition-colors">
       <div className="flex gap-4">

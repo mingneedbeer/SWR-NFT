@@ -5,10 +5,12 @@ export function EventList({
   events,
   isLoading,
   title,
+  viewMode,
 }: {
   events: NftEvent[];
   isLoading: boolean;
   title: string;
+  viewMode: 'list' | 'grid';
 }) {
   return (
     <div>
@@ -21,10 +23,16 @@ export function EventList({
 
       {events.length === 0 && !isLoading ? (
         <p className="text-nft-muted text-sm">No events found.</p>
+      ) : viewMode === 'grid' ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {events.map((event) => (
+            <EventCard key={event.id} event={event} viewMode="grid" />
+          ))}
+        </div>
       ) : (
         <div className="grid gap-3">
           {events.map((event) => (
-            <EventCard key={event.id} event={event} />
+            <EventCard key={event.id} event={event} viewMode="list" />
           ))}
         </div>
       )}
