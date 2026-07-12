@@ -14,7 +14,7 @@ type ViewMode = 'list' | 'grid';
 
 export function NftEvents() {
   const [tab, setTab] = useState<Tab>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   const { data: salesData, isLoading: salesLoading } = useSWR<{ events: NftEvent[] }>(
     '/api/sales?limit=20',
